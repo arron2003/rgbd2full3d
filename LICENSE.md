@@ -1,5 +1,8 @@
 This package contains the code described in
 "SCENE UNDERSTANDING WITH COMPLETE SCENES AND STRUCTURED REPRESENTATIONS"
+
+Ruiqi Guo
+
 PhD Dissertation, University of Illinois at Urbana-Champaign
 
    LICENSE

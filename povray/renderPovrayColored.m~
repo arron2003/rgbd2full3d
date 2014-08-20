@@ -1,0 +1,30 @@
+function result = renderPovrayColored(fvc)
+  % flush the model into a obj file
+  fn = [fileparts( mfilename('fullpath') ) '/object_colored.pov'];
+  fv .vertices= cat(1, fvc.vertices);
+  fid = fopen(fn, 'w');
+  fwrite(fid, sprintf('union{\nmesh {\n'));
+  s = '';
+  for j=1:numel(fvc)
+    fv = fvc(j);
+    for i=1:size(fv.faces, 1)
+      s1 = sprintf('triangle { < %.5f, %.5f, %.5f >, < %.5f, %.5f, %.5f >, < %.5f, %.5f, %.5f > }\n', fv.vertices(fv.faces(i,:), :)');
+      s = [s s1];
+    end
+    fwrite(fid, s);
+    fwrite(fid, sprintf('}\n'));
+    fwrite(fid, sprintf('pigment {\n color rgb<%f,%f,%f>\n}\n finish \{ ambient 0.2\n diffuse 0.5\n roughness 0.1\n}\}', fv.color(1)));
+  end
+  fclose(fid);
+  
+  fn = [fileparts( mfilename('fullpath') ) '/light.pov'];
+  fid = fopen(fn, 'w');
+  fwrite(fid, sprintf('#declare lightx=%f;\n#declare lighty=%f;\n#declare lightz=%f;\n', 0, max(0, max(fv.vertices(:,2))-.5), max(fv.vertices(:,3))/3));
+  fclose(fid);
+  
+  %setenv('PATH', [getenv('PATH') ':/usr/local/bin:/home/guo29/local/bin']);
+  ['/home/guo29/local/bin/povray +W561 +H427 +A0.2 ' fileparts( mfilename('fullpath') ) '/scene.pov']
+  unix(['/home/guo29/local/bin/povray 2>/dev/null +W561 +H427 +A0.2 ' fileparts( mfilename('fullpath') ) '/scene.pov']);
+  pause(0.2);
+  result=im2double(imread([fileparts( mfilename('fullpath') ) '/scene.png']));
+end

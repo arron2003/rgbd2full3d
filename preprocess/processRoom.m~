@@ -1,0 +1,20 @@
+function data = processRoom(rgb, depth)
+  data.images = im2double(rgb); data.depths = depth;
+  
+  p3d = rgb_plane2rgb_world_cropped(depth);
+  p3d = reshape([data.X(:) data.Y(:) data.Z(:)], [size(data.normal,1), size(data.normal,2), 3]);
+  data.X = p3d(:,:,1);  data.Y = p3d(:,:,2);  data.Z = p3d(:,:,3);
+  
+  keyboard;
+  [normalim, normalconf] = computeNormal(data);
+  data.normal = normalim;
+  
+  
+  data.R = computeRoomDirections(data);
+  data.normal = reshape(...
+  reshape(data.normal, [size(data.normal, 1)*size(data.normal, 2), 3])*data.R, ...
+  [size(data.normal,1), size(data.normal,2), 3]);
+  
+  p3d = reshape([data.X(:) data.Y(:) data.Z(:)]*data.R, [size(data.normal,1), size(data.normal,2), 3]);
+  data.X = p3d(:,:,1);  data.Y = p3d(:,:,2);  data.Z = p3d(:,:,3);
+end

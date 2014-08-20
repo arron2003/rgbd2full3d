@@ -1,0 +1,99 @@
+function data = estimateSceneGT(data, opt)
+
+  % pre-compute min and max depth of each object
+  prop = struct('minD', [], 'maxD', [], 'fvc', []); cnt = 0;
+  itemGroup = []; unary = [];
+  for ii=1:numel(result_layout)
+    cnt = cnt + 1;
+    fvc = struct('vertices', result_layout(ii).vertices*data.R', 'faces', result_layout(ii).faces);
+    minD = kinectMesa(fvc, false);
+    maxD = 10*(maxD>0);
+    prop(cnt) = struct('minD', minD, 'maxD', maxD, 'fvc', fvc);  
+    itemGroup(cnt) = ii;
+  end
+
+  for ii=1:numel(result_object)
+    if isempty(result_object(ii).retrieval), continue; end
+    for jj=1:numel(result_object(ii).retrieval)
+      fvc = struct('vertices', result_object(ii).retrieval(jj).vertices, 'faces', result_object(ii).retrieval(jj).faces);
+      [minD, ~, maxD] = kinectCamera(fvc, false, true);
+      cnt = cnt + 1;
+      prop(cnt) = struct('minD', minD, 'maxD', maxD, 'fvc', fvc);
+      itemGroup(cnt) = ii+numel(result_layout);
+    end        
+  end
+
+  regionMasks={result_object.mask};
+  
+  % compute unary
+  cnt = numel(result_layout);
+  for ii=1:numel(result_object)
+    if isempty(result_object(ii).retrieval), continue; end
+    reg1mask = regionMasks{ii};
+    for jj=1:numel(result_object(ii).retrieval)
+      cnt = cnt+1;
+      D = prop(cnt).minD;
+      m = ~~D;
+      unary(cnt) = ...
+                sum(abs(data.depths(m&reg1mask)-D(m&reg1mask))) ...
+              + sum(max(data.depths(m&~reg1mask)-D(m&~reg1mask),0)) ...
+              + opt.missing_C * sum(sum(~m&reg1mask));
+    end
+  end
+  
+  % compute pairwise
+  overlap = zeros(numel(itemGroup));
+  for ii=1:numel(itemGroup)
+    for jj=(ii+1):numel(itemGroup)
+      if jj<=numel(result_layout), continue; end % only consider object-* overlap
+      m = min( prop(jj).maxD - prop(ii).minD, prop(ii).maxD - prop(jj).minD );
+      m = max(m, 0);
+      overlap(ii,jj) = sum(m(:));
+      overlap(jj,ii) = overlap(ii,jj);
+    end
+  end
+
+  % setup linear program
+  nNodes = numel(itemGroup);
+  [n1, n2] = find(overlap>0);
+  pairwise = overlap(overlap>0);
+  nEdges = numel(n1);
+
+  elem = unique(itemGroup);
+  A1 = [];
+  % nodes constraints
+  cnt = 0;
+  for ii=1:numel(elem)
+    if ~ismember(ii, itemGroup), continue; end
+    cnt = cnt + 1;
+    A1(1:nNodes,cnt)=itemGroup==ii;
+  end
+  A1 = [A1; zeros(nEdges, cnt)];
+  B1 = ones(cnt,1);
+  % edge constraints
+  A2 = zeros(nNodes+nEdges, nNodes);
+  B2 = zeros(nNodes,1);
+  for ii=1:nNodes
+    A2(ii,ii)=-1;
+    A2(nNodes+find(n1==ii),ii)=1;
+  end
+  % remove invalid constraints
+  activeConst = (sum(A2)~=-1);
+  A2 = A2(:, activeConst);
+  B2 = B2(activeConst);
+  LB = zeros(nNodes+nEdges,1);
+  UB = ones(nNodes+nEdges,1);
+  f = double(cat(2, unary, pairwise'));
+  Aeq = cat(1, A1', A2'); Beq = cat(1, B1, B2);
+  x = linprog(f,[],[],Aeq,Beq,LB,UB);
+  x = x(1:nNodes);
+
+  fvc = struct('vertices', [], 'faces', []);
+  for ii=unique(itemGroup)
+    %[~, maxi] = max(x(itemGroup==ii));
+    [~, maxi] = max(x'.*double(itemGroup==ii));
+    fvc.faces = cat(1, fvc.faces, size(fvc.vertices,1)+prop(maxi).fvc.faces);
+    fvc.vertices = cat(1, fvc.vertices, prop(maxi).fvc.vertices);
+  end
+  final_fvc = fvc;
+end

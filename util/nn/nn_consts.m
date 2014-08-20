@@ -1,0 +1,24 @@
+% Output types.
+BINARY = 1;
+GAUSSIAN = 2;
+SOFTMAX = 3;
+
+% Activation function types.
+LOGISTIC = 1;
+TANH = 2;
+
+% Loss functions
+LOG_LOSS = 1;
+MSE_LOSS = 2;
+CROSS_ENTROPY_LOSS = 3;
+CROSS_ENTROPY_RANK_LOSS = 4;
+
+% Arguments for nn_loss
+RANK_LOSS_TRUNCATED = 1;
+RANK_LOSS_LINEAR = 2;
+RANK_LOSS_EXP = 3;
+
+% 
+RESAMPLE_NONE = 0;
+RESAMPLE_RANDOM = 1;
+RESAMPLE_BOOSTING = 2;

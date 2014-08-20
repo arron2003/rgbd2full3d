@@ -4,6 +4,12 @@ rgbd2full3d: Convert a RGBD image into a cad like full 3D model.
 Watch this video to get a sense of what this accomplishes
 http://aqua.cs.uiuc.edu/fully3D.mp4
 
+My dissertation is located at: 
+
+"SCENE UNDERSTANDING WITH COMPLETE SCENES AND STRUCTURED REPRESENTATIONS"
+
+http://aqua.cs.uiuc.edu/site/files/ruiqi_dissertation.pdf
+
 Dependency:
 
 1. Install Povray.
